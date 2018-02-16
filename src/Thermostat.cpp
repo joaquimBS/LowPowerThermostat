@@ -13,6 +13,8 @@
 #include "RTClib.h"     // https://github.com/adafruit/RTClib/archive/1.2.0.zip
 
 /*-------------------------------- Defines -----------------------------------*/
+#define BUILD_STR "1.0"
+
 #define WITH_RFM69
 #define WITH_SPIFLASH
 #define WITH_OLED
@@ -325,6 +327,8 @@ void setup()
 #if defined(USE_DEBUG)
     Serial.begin(SERIAL_BR);
     while (!Serial);
+
+    DEBUGVAL("Thermostat v", BUILD_STR);
 #endif
 
     /* IO Pins need to be initialized prior to other peripherals start */
