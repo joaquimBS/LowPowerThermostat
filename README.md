@@ -1,4 +1,4 @@
-# Low Power Thermostat
+# Low Power Thermostat [![Build Status](https://travis-ci.org/joaquimBS/LowPowerThermostat.svg)](https://travis-ci.org/joaquimbs/LowPowerThermostat)
 Here you will find the schematics and the code of a low power Thermostat, based on a [Moteino](https://lowpowerlab.com/guide/moteino/) board. It has a build-in radio to transmit information to a WiFi-enabled base station and, therefore, push data the cloud.
 
 The thermostat itself works just as a switch to the heater control line, so no AC supply is needed.
