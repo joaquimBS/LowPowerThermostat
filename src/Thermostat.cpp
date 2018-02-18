@@ -13,6 +13,7 @@
 #include "RTClib.h"     // https://github.com/adafruit/RTClib/archive/1.2.0.zip
 
 /*-------------------------------- Defines -----------------------------------*/
+#define APPNAME_STR "Thermostat"
 #define BUILD_STR "1.0"
 
 #define WITH_RFM69
@@ -328,7 +329,8 @@ void setup()
     Serial.begin(SERIAL_BR);
     while (!Serial);
 
-    DEBUGVAL("Thermostat v", BUILD_STR);
+    DEBUGVAL("AppName=", APPNAME_STR);
+    DEBUGVAL("AppVersion=", BUILD_STR);
 #endif
 
     /* IO Pins need to be initialized prior to other peripherals start */
@@ -672,7 +674,7 @@ void ThermoLogicTimeToOn()
 
 void ThermoLogicTempSetpoint()
 {
-    mode = 1;
+    mode = 0;
 
     uint16_t hysteresis_hi = td.setpoint;
     uint16_t hysteresis_lo = td.setpoint;
