@@ -36,7 +36,7 @@ SSD1306AsciiAvrI2c oled;
 //#include <RFM69_ATC.h>     // https://github.com/lowpowerlab/RFM69
 #include "RFM69_OTA.h"     // https://github.com/lowpowerlab/RFM69
 RFM69 radio;
-#define GATEWAYID 255
+#define GATEWAYID 200
 #define NETWORKID 100
 #define NODEID 0
 #define FREQUENCY RF69_868MHZ
@@ -879,14 +879,15 @@ void ProcessAckFromBase()
     if((radio.DATALEN >= 4) && (radio.DATA[0] == NEW_REQUEST)) {
         /* Attention, new command received! */
         ThermostatModeId new_thermo_mode_id = (ThermostatModeId)radio.DATA[1];
+        uint16_t param = ((radio.DATA[3] << 8) + radio.DATA[2]);
 
         SetThermoState(new_thermo_mode_id);
 
         if((THERMO_STATE_TTOFF == new_thermo_mode_id) || (THERMO_STATE_TTON == new_thermo_mode_id)){
-            td.remaining_time_s = ((radio.DATA[2] << 8) + radio.DATA[3]);
+            td.remaining_time_s = param;
         }
         else if(THERMO_STATE_SETPOINT == new_thermo_mode_id) {
-            td.setpoint = radio.DATA[3];
+            td.setpoint = param;
         }
 
         state_current->thermo_logic();
@@ -926,9 +927,10 @@ void TransmitToBase()
     tx_buff[idx++] = lowByte(sleep_task_time/100);
     tx_buff[idx++] = highByte(sleep_task_time/100);
     
-#if 0
+#if 1
     if(true == radio.sendWithRetry(GATEWAYID, tx_buff, idx)) {
         /* Attention, the following routine can turn ON or OFF the heater */
+        DEBUGVAL("radio.DATALEN=", radio.DATALEN);
         ProcessAckFromBase();
     }
     else {
