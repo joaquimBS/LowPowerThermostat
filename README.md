@@ -1,10 +1,12 @@
-# Low Power Thermostat [![Build Status](https://travis-ci.org/joaquimBS/LowPowerThermostat.svg)](https://travis-ci.org/joaquimbs/LowPowerThermostat)
-Here you will find the schematics and the code of a low power Thermostat, based on a [Moteino](https://lowpowerlab.com/guide/moteino/) board. It has a build-in radio to transmit information to a WiFi-enabled base station and, therefore, push data the cloud.
+# Low Power Thermostat [![Build Status](https://travis-ci.org/joaquimBS/LowPowerThermostat.svg?branch=master)](https://travis-ci.org/joaquimBS/LowPowerThermostat)
 
-The thermostat itself works just as a switch to the heater control line, so no AC supply is needed.
+Here are the code and schematics of a IoT enabled, low power Thermostat, based on a [Moteino](https://lowpowerlab.com/guide/moteino/) board. It has a build-in 868MHz radio to transmit information to a base station and, therefore, push data the cloud.
+
+The thermostat itself works just as a switch to the heater control line; no AC supply is needed.
 
 Key features:
-- Low power (stand by current of 24uA). No AC supply needed. Can run for months with 3xAAA.
+- Current temperature set point and ON/OFF modes are configurable through an Android app. :-)
+- Low power (idle current of ~25uA). No AC supply needed. Can run for months with 3xAAA, LiPo, etc.
 - OLED screen as a HID.
 - 3 modes of operation:
 	- Turn the heater ON for a period of time.
@@ -12,7 +14,10 @@ Key features:
 	- Temperature set point with ~~a configurable~~ 1ºC hysteresis. 
 - IoT enabled through another Arduino based device connected to the Internet.
 
+Links:
+- https://thingspeak.com/channels/400806/
+
 TODO:
-- Connect the Thermostat directly to the Internet, keeping the low power profile.
-- Control the temperature set point from the cell phone.
+- Connect the Thermostat directly to the Internet, keeping a low power profile.
 - Add an RTC in order to program the Thermostat based on week days, day time, etc.
+
