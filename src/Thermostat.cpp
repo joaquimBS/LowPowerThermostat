@@ -1,14 +1,13 @@
 // Arduino libraries
 // #include <SoftwareSerial.h>
-#include <SPI.h>           //comes with Arduino IDE (www.arduino.cc)
-#include <Wire.h>          //comes with Arduino IDE (www.arduino.cc)
+#include <SPI.h> //comes with Arduino IDE (www.arduino.cc)
+#include <Wire.h> //comes with Arduino IDE (www.arduino.cc)
 
 // Custom Arduino libraries
 #include "Thermostat.h"
 
 // #include "MemoryFree.h"
-#include "DHT.h"        // https://github.com/adafruit/DHT-sensor-library/archive/1.3.0.zip
-#include "dht.h"      // DHTlib.zip
+#include "SparkFunHTU21D.h"
 #include "LowPower.h"   // https://github.com/rocketscream/Low-Power/archive/V1.6.zip
 #include "RTClib.h"     // https://github.com/adafruit/RTClib/archive/1.2.0.zip
 
@@ -28,8 +27,8 @@
 #include "SSD1306Ascii.h"   // https://github.com/greiman/SSD1306Ascii
 #include "SSD1306AsciiAvrI2c.h"
 SSD1306AsciiAvrI2c oled;
-#define ENABLE_OLED_VCC  digitalWrite(OLED_VCC, HIGH)
-#define DISABLE_OLED_VCC digitalWrite(OLED_VCC, LOW)
+#define ENABLE_OLED_VCC  {pinMode(OLED_VCC, OUTPUT); digitalWrite(OLED_VCC, HIGH);}
+#define DISABLE_OLED_VCC {pinMode(OLED_VCC, INPUT);  digitalWrite(OLED_VCC, HIGH);}
 #endif
 
 #if defined(WITH_RFM69)
@@ -60,8 +59,7 @@ boolean flash_is_awake = false;
 #define ENABLE_RTC_VCC  digitalWrite(RTC_VCC, HIGH)
 #define DISABLE_RTC_VCC digitalWrite(RTC_VCC, LOW)
 
-DHT dht22(DHT_PIN, DHT22);
-dht myDHT;
+HTU21D myHumidity;
 RTC_DS1307 rtc;
 
 #define SHORT_CLICK_TIME_MS 80
@@ -312,7 +310,7 @@ void InitIOPins()
     SET_DIGITAL_PINS_AS_INPUTS();
 
     // -- Custom IO setup --
-    pinMode(OLED_VCC, OUTPUT);
+    pinMode(OLED_VCC, INPUT); // Not an error. See ENABLE_OLED_VCC
     pinMode(RTC_VCC, OUTPUT);
     pinMode(BUTTON_CTRL, INPUT_PULLUP);
     pinMode(BUTTON_UP, INPUT_PULLUP);
@@ -346,7 +344,8 @@ void setup()
     InitOled();
 //    InitRTC();
     
-    dht22.begin();
+    myHumidity.begin();
+    myHumidity.setResolution(USER_REGISTER_RESOLUTION_RH11_TEMP11);
 
     LED_OFF;
     
@@ -954,10 +953,8 @@ void GoToSleep()
     
     DISABLE_OLED_VCC;
     DISABLE_RTC_VCC;
-
-    digitalWrite(SDA, LOW);  // To minimize I2C current consumption during sleep
-    digitalWrite(SCL, LOW);
-    pinMode(DHT_PIN, INPUT_PULLUP);
+    
+    Wire.end();
     digitalWrite(RELAY_FEEDBACK, LOW);
 
     wake_up_cause = SLEEP_TICK;
@@ -980,19 +977,20 @@ void GoToSleep()
         LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
         /* ZZzzZZzzZZzz */
     }
-
+    DEBUGVAL("wake_up_cause=", wake_up_cause);
+    
     if (wake_up_cause == PUSHBUTTON) {
         detachInterrupt(digitalPinToInterrupt(BUTTON_CTRL));
 
         ResetTimerToSleep();
         td.power_mode = POWER_ON;
-
-        Wire.begin();
+        
         InitOled();
-//        InitRTC();
-//        FlashWakeup();
-
         state_current->oled_update();
+    }
+    else if(wake_up_cause == PERIODIC_TASK) {
+        ENABLE_OLED_VCC; // This is a workaround to make I2C pullups work. :-(
+        Wire.begin();
     }
 }
 
@@ -1020,29 +1018,21 @@ uint16_t ReadVbatMv()
     return (uint16_t) vbat;
 }
 
+
 void ReadTempData()
 {
-    /* mode 1 = TimeToOff */
-    if(mode == 1){
-        /* To avoid use of floats, multiply values by 10 and use 'de */
-        td.temperature = dht22.readTemperature(false, true) * 10;
-        td.humidity = dht22.readHumidity() * 10;
-    }
-    else {
-        int chk = myDHT.read22(DHT_PIN);
+    float temp = myHumidity.readTemperature();
+    
+    while((temp == ERROR_I2C_TIMEOUT) || (temp == ERROR_BAD_CRC)) {
+        delay(1);
+        DEBUG(".");
+        temp = myHumidity.readTemperature();
         
-        while(chk != DHTLIB_OK) {
-            delay(2000);
-            chk = myDHT.read22(DHT_PIN);
-        }
-        
-        DEBUGVAL("chk=", chk);
-        
-        td.temperature = myDHT.temperature * 10;
-        td.humidity = myDHT.humidity * 10;
+        /* ATTENTION. Possible lock! */
     }
     
-    delay(250);
+    td.temperature = temp * 10;
+    td.humidity = myHumidity.readHumidity() * 10;
     
     DEBUGVAL("temp=", td.temperature);
     DEBUGVAL("hum=", td.humidity);
