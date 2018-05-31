@@ -24,6 +24,16 @@ The thermostat itself works just as a switch to the heater control line; no AC s
 
 ## Changelog
 
+### v1.1
+- Switched from DHT22 temperature sensor to HTU21D.
+- Aprox 100ms of sleep task time.
+```
+Program:   22370 bytes (68.3% Full)
+(.text + .data + .bootloader)
+Data:        929 bytes (45.4% Full)
+(.data + .bss + .noinit)
+```
+
 ### v1.0
 - First stable version.
 - Android app connection is working.
