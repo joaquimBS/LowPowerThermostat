@@ -13,7 +13,7 @@
 
 /*-------------------------------- Defines -----------------------------------*/
 #define APPNAME_STR "Thermostat"
-#define BUILD_STR "1.1"
+#define BUILD_STR "1.2"
 
 #define WITH_RFM69
 #define WITH_SPIFLASH
@@ -297,6 +297,7 @@ uint64_t sleep_task_init_time = 0;
 uint32_t sleep_task_time = 0;
 
 boolean force_setpoint = false;
+uint8_t skip_samples = 0; // flag to skip N temp readings
 // ========================== End of Header ================================= //
 
 /* -------------------------------- Routines -------------------------------- */
@@ -732,12 +733,10 @@ void DuringPowerON()
             state_current = state_current_saved;
             state_current_saved = (ThermoStateFunctions*) NULL_PTR;
         }
-        else {
-            /* Nothing */
-        }
 
         /* Switch the device to power saving mode */
         td.power_mode = POWER_SAVE;
+        skip_samples = 2;
     }
 }
 
@@ -1018,24 +1017,28 @@ uint16_t ReadVbatMv()
     return (uint16_t) vbat;
 }
 
-
 void ReadTempData()
 {
-    float temp = myHumidity.readTemperature();
-    
-    while((temp == ERROR_I2C_TIMEOUT) || (temp == ERROR_BAD_CRC)) {
-        delay(1);
-        DEBUG(".");
-        temp = myHumidity.readTemperature();
-        
-        /* ATTENTION. Possible lock! */
+    if(skip_samples == 0) {
+        float temp = myHumidity.readTemperature();
+
+        while((temp == ERROR_I2C_TIMEOUT) || (temp == ERROR_BAD_CRC)) {
+            delay(1);
+            DEBUG(".");
+            temp = myHumidity.readTemperature();
+
+            /* ATTENTION. Possible lock! */
+        }
+
+        td.temperature = temp * 10;
+        td.humidity = myHumidity.readHumidity() * 10;
+
+        DEBUGVAL("temp=", td.temperature);
+        DEBUGVAL("hum=", td.humidity);
     }
-    
-    td.temperature = temp * 10;
-    td.humidity = myHumidity.readHumidity() * 10;
-    
-    DEBUGVAL("temp=", td.temperature);
-    DEBUGVAL("hum=", td.humidity);
+    else {
+        skip_samples--;
+    }
 }
 
 /*
