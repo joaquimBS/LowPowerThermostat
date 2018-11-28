@@ -876,10 +876,17 @@ void SampleData()
 void ProcessAckFromBase()
 {
     /* Attention, this routine may turn the Heater ON or OFF */
+
+    DEBUGVAL("radio.DATALEN=", radio.DATALEN);
+    DEBUGVAL("radio.DATA[0]=", radio.DATA[0]);
+
     if((radio.DATALEN >= 4) && (radio.DATA[0] == NEW_REQUEST)) {
         /* Attention, new command received! */
         ThermostatModeId new_thermo_mode_id = (ThermostatModeId)radio.DATA[1];
         uint16_t param = ((radio.DATA[3] << 8) + radio.DATA[2]);
+
+        DEBUGVAL("new_thermo_mode_id=", new_thermo_mode_id);
+        DEBUGVAL("param=", param);
 
         SetThermoState(new_thermo_mode_id);
 
@@ -891,6 +898,9 @@ void ProcessAckFromBase()
         }
 
         state_current->thermo_logic();
+    }
+    else {
+        DEBUGLN("Invalid response!");
     }
 }
 
