@@ -106,17 +106,17 @@ RTC_DS1307 rtc;
 #define MIN_TIMEOUT_TO_SLEEP_S ((unsigned int)5)
 #define MAX_TIMEOUT_TO_SLEEP_S ((unsigned int)30)
 
-#define DEFAULT_CYCLES_OF_SLEEP_S ((unsigned int)20)
+#define DEFAULT_CYCLES_OF_SLEEP_S ((unsigned int)120)
 #endif
 
 #define MIN_CYCLES_OF_SLEEP_S ((unsigned int)20)
 #define MAX_CYCLES_OF_SLEEP_S ((unsigned int)5*60)
 
-#define TEMP_HYSTERESIS_RANGE 10   // remember 0.1C resolution
-#define TEMP_SETPOINT_INC 1
+#define TEMP_HYSTERESIS_RANGE 5   // remember 0.1C resolution
+#define TEMP_SETPOINT_INC 5 // 0.5 ºC
 #define TEMP_SETPOINT_MAX 230
 #define TEMP_SETPOINT_MIN 150
-#define TEMP_SETPOINT_OFF 0
+#define TEMP_SETPOINT_OFF 145
 
 #define STOP_STR ((const char*)"STOP")
 #define OLED_LINE_SIZE_MAX 16
@@ -640,11 +640,8 @@ void HeaterOFF()
 }
 
 //-------------- Thermostat Logic Section --------------
-static int mode = 0;    // temporal variable to check temp reading method
 void ThermoLogicTimeToOff()
 {
-    mode = 0;
-
     if (td.remaining_time_s == TIMER_DISABLED ||
         (td.remaining_time_s == TIME_ZERO)) {
         HeaterOFF();
@@ -657,8 +654,6 @@ void ThermoLogicTimeToOff()
 
 void ThermoLogicTimeToOn()
 {
-    mode = 0;
-    
     if (td.remaining_time_s == TIME_ZERO) {
         HeaterON();
 
@@ -674,18 +669,10 @@ void ThermoLogicTimeToOn()
 
 void ThermoLogicTempSetpoint()
 {
-    mode = 0;
-
-    uint16_t hysteresis_hi = td.setpoint;
+    uint16_t hysteresis_hi = td.setpoint + TEMP_HYSTERESIS_RANGE;
     uint16_t hysteresis_lo = td.setpoint;
     
-    uint16_t hysteresis_range = force_setpoint ? 0 : TEMP_HYSTERESIS_RANGE;
-
-    /* This is to implement a TEMP_HYSTERESIS_RANGE hysteresis range. */
-    hysteresis_hi += (hysteresis_range / 2); // remember 0.1C resolution.
-    hysteresis_lo -= (hysteresis_range / 2); // remember 0.1C resolution.
-
-    if (td.temperature >= hysteresis_hi) {
+    if ((td.setpoint == TEMP_SETPOINT_OFF) || (td.temperature > hysteresis_hi)) {
         HeaterOFF();
     }
     else if (td.temperature < hysteresis_lo) {
@@ -815,7 +802,8 @@ void OledStateTempSetpoint()
     oled.println(buff);
 
     oled.clearToEOL();
-    snprintf(buff, OLED_LINE_SIZE_MAX, "Obj.: %s", (td.setpoint == 0) ? STOP_STR : String((td.setpoint / 10.0), 1).c_str());
+    snprintf(buff, OLED_LINE_SIZE_MAX, "Obj.: %s", (td.setpoint == TEMP_SETPOINT_OFF) ? 
+        STOP_STR : String((td.setpoint / 10.0), 1).c_str());
     oled.println(buff);
 }
 
@@ -937,7 +925,7 @@ void TransmitToBase()
     tx_buff[idx++] = lowByte(sleep_task_time/100);
     tx_buff[idx++] = highByte(sleep_task_time/100);
     
-#if 1
+#if 0
     if(true == radio.sendWithRetry(GATEWAYID, tx_buff, idx)) {
         /* Attention, the following routine can turn ON or OFF the heater */
         DEBUGVAL("radio.DATALEN=", radio.DATALEN);
