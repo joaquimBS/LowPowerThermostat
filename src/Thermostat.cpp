@@ -151,7 +151,8 @@ typedef enum
 {
     SLEEP_TICK = 0,
     PERIODIC_TASK,
-    PUSHBUTTON
+    PUSHBUTTON,
+    RADIO_RX
 } WakeUpCause;
 
 typedef enum
@@ -205,6 +206,7 @@ uint16_t ReadVbatMv();
 void ReadTempData();
 void TransmitToBase();
 void SampleData();
+void ProcessAckFromBase();
 void FlashWakeup();
 void FlashSleep();
 void ReadAndDebouncePushbutton();
@@ -375,9 +377,6 @@ void DecreaseRemainingTimeTask()
             /* This is a shortcut to react sooner. */
             remaining_sleep_cycles = 0;
         }
-        else {
-            /* Nothing */
-        }
     }
 
     if (remaining_sleep_cycles > 0) {
@@ -410,9 +409,6 @@ void ClickStateTimeToOff(uint8_t pb_id, PushButtonState click_type)
                     td.remaining_time_s = TIMER_DISABLED;
                 }
             }
-            else {
-                /* Nothing */
-            }
         }
         else if(pb_id == BUTTON_UP) {
             if(td.remaining_time_s == TIMER_DISABLED) {
@@ -422,9 +418,6 @@ void ClickStateTimeToOff(uint8_t pb_id, PushButtonState click_type)
                 td.remaining_time_s += TIME_INCREMENT_1800_S;
                 if (td.remaining_time_s > MAX_TIME_TO_OFF_S) {
                     td.remaining_time_s = MAX_TIME_TO_OFF_S;
-                }
-                else {
-                    /* Nothing */
                 }
             }
         }
@@ -459,9 +452,6 @@ void ClickStateTimeToOn(uint8_t pb_id, PushButtonState click_type)
                     td.remaining_time_s = TIMER_DISABLED;
                 }
             }
-            else {
-                /* Nothing */
-            }
         }
         else if(pb_id == BUTTON_UP) {
             if(td.remaining_time_s == TIMER_DISABLED) {
@@ -471,9 +461,6 @@ void ClickStateTimeToOn(uint8_t pb_id, PushButtonState click_type)
                 td.remaining_time_s += TIME_INCREMENT_900_S;
                 if (td.remaining_time_s > MAX_TIME_TO_ON_S) {
                     td.remaining_time_s = MAX_TIME_TO_ON_S;
-                }
-                else {
-                    /* Nothing */
                 }
             }
         }
@@ -702,12 +689,11 @@ void DuringPowerON()
     static long long timer1 = millis() + TIMER1_PERIOD;
 
     if (radio.receiveDone()) {
-        CheckForWirelessHEX(radio, flash, false);
+        ProcessAckFromBase();
     }
 
     if (millis() > timer1) {
         timer1 = millis() + TIMER1_PERIOD;
-        /* TBD */
     }
 
     ReadAndDebouncePushbutton();
@@ -871,7 +857,7 @@ void ProcessAckFromBase()
     if((radio.DATALEN >= 4) && (radio.DATA[0] == NEW_REQUEST)) {
         /* Attention, new command received! */
         ThermostatModeId new_thermo_mode_id = (ThermostatModeId)radio.DATA[1];
-        uint16_t param = ((radio.DATA[3] << 8) + radio.DATA[2]);
+        uint16_t param = radio.DATA[2] * radio.DATA[3];
 
         DEBUGVAL("new_thermo_mode_id=", new_thermo_mode_id);
         DEBUGVAL("param=", param);
@@ -883,6 +869,9 @@ void ProcessAckFromBase()
         }
         else if(THERMO_STATE_SETPOINT == new_thermo_mode_id) {
             td.setpoint = param;
+        }
+        else {
+            /* Nothing */
         }
 
         state_current->thermo_logic();
@@ -970,8 +959,14 @@ void GoToSleep()
     // Enter power down state with ADC and BOD module disabled.
     // Wake up when wake up pin is low.
     while(wake_up_cause == SLEEP_TICK) {
-        DecreaseRemainingTimeTask();
-        LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
+        if(radio.receiveDone()) {
+            wake_up_cause = PUSHBUTTON;
+        }
+        else {
+            radio.sleep();
+            DecreaseRemainingTimeTask();
+            LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
+        }
         /* ZZzzZZzzZZzz */
     }
     DEBUGVAL("wake_up_cause=", wake_up_cause);
