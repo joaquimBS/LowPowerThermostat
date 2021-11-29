@@ -13,7 +13,7 @@
 
 /*-------------------------------- Defines -----------------------------------*/
 #define APPNAME_STR "Thermostat"
-#define BUILD_STR "1.2"
+#define RELEASE_STR "1.2"
 
 #define WITH_RFM69
 #define WITH_SPIFLASH
@@ -106,7 +106,7 @@ RTC_DS1307 rtc;
 #define MIN_TIMEOUT_TO_SLEEP_S ((unsigned int)5)
 #define MAX_TIMEOUT_TO_SLEEP_S ((unsigned int)30)
 
-#define DEFAULT_CYCLES_OF_SLEEP_S ((unsigned int)120)
+#define DEFAULT_CYCLES_OF_SLEEP_S ((unsigned int)40)
 #endif
 
 #define MIN_CYCLES_OF_SLEEP_S ((unsigned int)20)
@@ -331,7 +331,7 @@ void setup()
     while (!Serial);
 
     DEBUGVAL("AppName=", APPNAME_STR);
-    DEBUGVAL("AppVersion=", BUILD_STR);
+    DEBUGVAL("AppVersion=", RELEASE_STR);
 #endif
 
     /* IO Pins need to be initialized prior to other peripherals start */
@@ -662,9 +662,11 @@ void ThermoLogicTempSetpoint()
     if(td.setpoint == TEMP_SETPOINT_OFF) {
         // This is a failsafe, to be able to turn off the heater if any bug.
         HeaterOFF();
+        td.remaining_time_s = TIMER_DISABLED;
     }
     else if(td.heater_status == HEATER_ON) {
         if((td.remaining_time_s == TIME_ZERO) && (td.temperature > hysteresis_hi)) {
+            td.remaining_time_s = TIMER_DISABLED;
             HeaterOFF();
         }
     }
@@ -740,6 +742,8 @@ void OledEngineeringMode()
     oled.clear();
     oled.home();
     
+    snprintf(buff, OLED_LINE_SIZE_MAX, "V%s", RELEASE_STR);
+    oled.println(buff);
     snprintf(buff, OLED_LINE_SIZE_MAX, "%d mV", ReadVbatMv());
     oled.println(buff);
     snprintf(buff, OLED_LINE_SIZE_MAX, "%lu us", sleep_task_time);
