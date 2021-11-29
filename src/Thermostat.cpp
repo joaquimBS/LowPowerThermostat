@@ -658,12 +658,22 @@ void ThermoLogicTempSetpoint()
 {
     uint16_t hysteresis_hi = td.setpoint + TEMP_HYSTERESIS_RANGE;
     uint16_t hysteresis_lo = td.setpoint;
-    
-    if ((td.setpoint == TEMP_SETPOINT_OFF) || (td.temperature > hysteresis_hi)) {
+
+    if(td.setpoint == TEMP_SETPOINT_OFF) {
+        // This is a failsafe, to be able to turn off the heater if any bug.
         HeaterOFF();
     }
-    else if (td.temperature < hysteresis_lo) {
-        HeaterON();
+    else if(td.heater_status == HEATER_ON) {
+        if((td.remaining_time_s == TIME_ZERO) && (td.temperature > hysteresis_hi)) {
+            HeaterOFF();
+        }
+    }
+    else if(td.heater_status == HEATER_OFF) {
+        if(td.temperature < hysteresis_lo) {
+            // TODO: Change the define to a value MINIMUM_ON_IN_SEPOINT
+            td.remaining_time_s = DEFAULT_ON_AFTER_TIME_TO_ON_S;
+            HeaterON();
+        }
     }
     else {
         /* Nothing */
