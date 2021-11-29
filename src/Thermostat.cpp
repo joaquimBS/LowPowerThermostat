@@ -264,17 +264,17 @@ ThermoStateFunctions thermo_state_temp_setpoint{
     ClickStateTempSetpoint};
 
 ThermoStateFunctions config_state_on_after_time_to_on{
-    NULL_PTR,
+    nullptr,
     OledConfigTimeOnAfterTimeToOn,
     ClickConfigTimeOnAfterTimeToOn};
 
 ThermoStateFunctions config_state_sleep_time_s{
-    NULL_PTR,
+    nullptr,
     OledConfigSleepTime,
     ClickConfigSleepTime};
 
 ThermoStateFunctions config_state_timeout_to_sleep{
-    NULL_PTR,
+    nullptr,
     OledConfigTimeoutToSleep,
     ClickConfigTimoutToSleep};
     
@@ -285,7 +285,7 @@ ThermoStateFunctions thermo_state_array[THERMO_STATE_MAX] {
 };
 
 ThermoStateFunctions *state_current = &thermo_state_array[THERMO_STATE_TTOFF];
-ThermoStateFunctions *state_current_saved = (ThermoStateFunctions*) NULL_PTR;
+ThermoStateFunctions *state_current_saved = (ThermoStateFunctions*) nullptr;
 
 uint64_t timer_to_sleep = 0;
 uint16_t remaining_sleep_cycles = 0;
@@ -701,10 +701,10 @@ void DuringPowerON()
     if (millis() > timer_to_sleep) {
         /* encapsular a una funcio */
 
-        if (state_current_saved != NULL_PTR) {
+        if (state_current_saved != nullptr) {
             /* Restore the saved Thermo State */
             state_current = state_current_saved;
-            state_current_saved = (ThermoStateFunctions*) NULL_PTR;
+            state_current_saved = (ThermoStateFunctions*) nullptr;
         }
 
         /* Switch the device to power saving mode */
