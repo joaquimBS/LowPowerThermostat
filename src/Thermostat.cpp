@@ -13,7 +13,7 @@
 
 /*-------------------------------- Defines -----------------------------------*/
 #define APPNAME_STR "Thermostat"
-#define RELEASE_STR "1.3"
+#define RELEASE_STR "1.3.1"
 
 #define WITH_RFM69
 #define WITH_SPIFLASH
