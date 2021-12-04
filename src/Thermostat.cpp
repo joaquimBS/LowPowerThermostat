@@ -730,6 +730,13 @@ void SetThermoState(ThermostatModeId new_mode_id)
     if(new_mode_id < THERMO_STATE_MAX) {
         td.mode = new_mode_id;
         td.remaining_time_s = TIMER_DISABLED;
+
+        if(td.mode == THERMO_STATE_SETPOINT) {
+            // This is a specific use case to avoid entering
+            // SetPoint with timer = disabled and Heater = ON
+            // which would cause a never ending HeaterON
+            td.remaining_time_s = TIME_ZERO;
+        }
         
         state_current = &thermo_state_array[td.mode];
     }
